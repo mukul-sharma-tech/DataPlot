@@ -72,11 +72,6 @@
       "target": [
         "AppImage"
       ]
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ]
     }
   }
 }

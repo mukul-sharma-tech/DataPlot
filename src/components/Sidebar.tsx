@@ -386,7 +386,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Layers className="w-3.5 h-3.5" />
                 Superpose in View
               </button>
-            </div>
+            </div> 
           )}
 
           {/* Channels & Files Browser */}

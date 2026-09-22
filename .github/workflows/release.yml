@@ -30,7 +30,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app and publish release
-        run: npm run electron:release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Electron app
+        run: npm run build && npx electron-builder --publish never
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataplot-${{ matrix.os }}
+          path: |
+            release/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*
+          draft: false
+          generate_release_notes: true

@@ -873,6 +873,7 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
       ? Math.abs(view.cursorB - view.cursorA)
       : null;
   const deltaFreq = deltaX && deltaX > 0 ? 1 / deltaX : null;
+  const isCompactHeader = containerWidth < 640;
 
   return (
     <div
@@ -887,11 +888,11 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
       {/* Tile Header & Toolbar */}
       <div
         id={`graph-header-${view.id}`}
-        className={`flex items-center justify-between px-2.5 py-1.5 border-b select-none text-[12px] sm:text-[13px] min-h-[36px] overflow-hidden gap-1.5 ${
+        className={`flex ${isCompactHeader ? 'flex-col items-stretch' : 'flex-wrap items-center justify-between'} px-2.5 py-1.5 border-b select-none text-[12px] sm:text-[13px] min-h-[36px] overflow-hidden gap-1.5 ${
           isDark ? 'border-[#3A3A3A] bg-[#242424]' : 'border-[#CCCCCC] bg-[#EEEEEE]'
         }`}
       >
-        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+        <div className={`flex items-center gap-1.5 min-w-0 ${isCompactHeader ? 'w-full' : 'flex-1 overflow-hidden'}`}>
           <span
             className={`w-2.5 h-2.5 rounded-full shrink-0 ${
               isDark ? 'bg-[#60CDFF] border border-white/90' : 'bg-[#0067B8] border border-black/80'
@@ -930,8 +931,12 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
           )}
         </div>
 
-        {/* Action Controls - Scaled adaptively to prevent overlapping in multi-graph grids */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        {/* Action Controls - Always grouped in a second row for multi-graph layouts */}
+        <div
+          className={`flex flex-wrap items-center gap-0.5 sm:gap-1 ${
+            isCompactHeader ? 'w-full justify-between pt-1 border-t border-inherit' : 'justify-end shrink-0 ml-auto'
+          }`}
+        >
           {/* Superposition Channel Selector */}
           <div className="relative">
             <button

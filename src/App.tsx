@@ -37,6 +37,7 @@ export default function App() {
 
   // Screen Grid Layout: default 1 as requested ("initially default will be one, but then we can select 2 3 4 5")
   const [gridLayout, setGridLayout] = useState<GridLayout>(1);
+  const [selectedVisibleViewIds, setSelectedVisibleViewIds] = useState<string[]>([]);
 
   // Graph Views
   const [views, setViews] = useState<GraphViewConfig[]>([]);
@@ -177,6 +178,7 @@ export default function App() {
     ];
 
     setViews(initialViews);
+    setSelectedVisibleViewIds(initialViews.slice(0, 1).map((view) => view.id));
   }, []);
 
   // Handle File Uploads (TDMS, CSV, TXT)
@@ -323,10 +325,32 @@ export default function App() {
     );
   };
 
-  // Visible views based on gridLayout count
-  const visibleViews = maximizedViewId
-    ? views.filter((v) => v.id === maximizedViewId)
-    : views.slice(0, gridLayout);
+  useEffect(() => {
+    if (views.length === 0) {
+      setSelectedVisibleViewIds([]);
+      return;
+    }
+
+    const allIds = views.map((view) => view.id);
+    setSelectedVisibleViewIds((prev) => {
+      const validPrev = prev.filter((id) => allIds.includes(id));
+      const merged = [...validPrev];
+
+      for (const id of allIds) {
+        if (merged.length >= gridLayout) break;
+        if (!merged.includes(id)) merged.push(id);
+      }
+
+      if (merged.length === 0) return allIds.slice(0, Math.min(gridLayout, allIds.length));
+      return merged.slice(0, Math.min(gridLayout, allIds.length));
+    });
+  }, [views, gridLayout]);
+
+  const visibleViewIds = maximizedViewId
+    ? [maximizedViewId]
+    : selectedVisibleViewIds.filter((id) => views.some((view) => view.id === id)).slice(0, gridLayout);
+
+  const visibleViews = views.filter((view) => visibleViewIds.includes(view.id));
 
   // Responsive Grid CSS class computation
   const getGridClass = () => {
@@ -386,9 +410,21 @@ export default function App() {
           onChangeLayout={(layout) => {
             setMaximizedViewId(null);
             setGridLayout(layout);
+            setSelectedVisibleViewIds((prev) => {
+              const allIds = views.map((view) => view.id);
+              const next = [...prev.filter((id) => allIds.includes(id))];
+              for (const id of allIds) {
+                if (next.length >= layout) break;
+                if (!next.includes(id)) next.push(id);
+              }
+              return next.slice(0, layout);
+            });
           }}
           onAddChannelToView={handleAddChannelToView}
           onSuperposeChannels={handleSuperposeChannels}
+          views={views}
+          selectedVisibleViewIds={selectedVisibleViewIds}
+          onChangeVisibleViewIds={(ids) => setSelectedVisibleViewIds(ids)}
           isDark={isDark}
         />
 

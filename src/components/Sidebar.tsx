@@ -14,12 +14,16 @@ import {
   BarChart2,
   Check,
   Download,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { UploadedFile, DataChannel, GridLayout } from '../types';
+import { UploadedFile, DataChannel, GridLayout, GraphViewConfig } from '../types';
 
 interface SidebarProps {
   files: UploadedFile[];
   channels: DataChannel[];
+  views: GraphViewConfig[];
+  selectedVisibleViewIds: string[];
   collapsed: boolean;
   onToggleCollapse: () => void;
   onFileUpload: (files: FileList) => void;
@@ -29,12 +33,15 @@ interface SidebarProps {
   onChangeLayout: (layout: GridLayout) => void;
   onAddChannelToView: (channelId: string) => void;
   onSuperposeChannels: (channelIds: string[]) => void;
+  onChangeVisibleViewIds: (ids: string[]) => void;
   isDark: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   files,
   channels,
+  views,
+  selectedVisibleViewIds,
   collapsed,
   onToggleCollapse,
   onFileUpload,
@@ -44,12 +51,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onChangeLayout,
   onAddChannelToView,
   onSuperposeChannels,
+  onChangeVisibleViewIds,
   isDark,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isVisibleGraphsOpen, setIsVisibleGraphsOpen] = useState(true);
+  const [isUploadedDataOpen, setIsUploadedDataOpen] = useState(true);
+  const [expandedFileIds, setExpandedFileIds] = useState<Record<string, boolean>>({});
   const [selectedChannelsForSuperposition, setSelectedChannelsForSuperposition] = useState<string[]>([]);
+
+  const toggleFileGroup = (fileId: string) => {
+    setExpandedFileIds((prev) => ({
+      ...prev,
+      [fileId]: !(prev[fileId] ?? true),
+    }));
+  };
 
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -98,6 +116,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onSuperposeChannels(selectedChannelsForSuperposition);
       setSelectedChannelsForSuperposition([]);
     }
+  };
+
+  const toggleVisibleGraph = (viewId: string) => {
+    const allAvailable = views.map((view) => view.id);
+    const nextSelected = selectedVisibleViewIds.includes(viewId)
+      ? selectedVisibleViewIds.filter((id) => id !== viewId)
+      : [...selectedVisibleViewIds, viewId].filter((id) => allAvailable.includes(id));
+
+    const cleaned = nextSelected.slice(Math.max(0, nextSelected.length - gridLayout));
+    const safeSelection = cleaned.length > 0 ? cleaned : allAvailable.slice(0, Math.min(gridLayout, allAvailable.length));
+
+    onChangeVisibleViewIds(safeSelection);
   };
 
   return (
@@ -361,6 +391,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Channels & Files Browser */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {views.length > 0 && (
+              <div
+                className={`rounded-[4px] border overflow-hidden ${
+                  isDark ? 'bg-[#202020] border-[#3A3A3A]' : 'bg-[#F3F3F3] border-[#CCCCCC]'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsVisibleGraphsOpen((prev) => !prev)}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-left ${
+                    isDark ? 'bg-[#242424]' : 'bg-[#EEEEEE]'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 text-[13px] font-semibold">
+                    <Layers className={`w-3.5 h-3.5 ${isDark ? 'text-[#60CDFF]' : 'text-[#0067B8]'}`} />
+                    Visible Graphs
+                  </span>
+                  {isVisibleGraphsOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+
+                {isVisibleGraphsOpen && (
+                  <div className="p-2 space-y-1.5">
+                    {views.map((view, index) => {
+                      const checked = selectedVisibleViewIds.includes(view.id);
+                      return (
+                        <label
+                          key={view.id}
+                          className={`flex items-center gap-2 rounded-[4px] px-2 py-1.5 text-[12px] cursor-pointer transition-colors ${
+                            checked
+                              ? isDark
+                                ? 'bg-[#2C2C2C] text-[#FFFFFF]'
+                                : 'bg-[#FFFFFF] text-[#111111]'
+                              : isDark
+                              ? 'hover:bg-[#2C2C2C] text-[#D4D4D4]'
+                              : 'hover:bg-[#FFFFFF] text-[#222222]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleVisibleGraph(view.id)}
+                            className={`rounded-[2px] ${isDark ? 'accent-[#60CDFF]' : 'accent-[#0067B8]'}`}
+                          />
+                          <span className="min-w-0 flex-1 truncate font-medium">{index + 1}. {view.title}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Channel Search Input */}
             <div className="relative">
               <Search
@@ -381,144 +463,189 @@ export const Sidebar: React.FC<SidebarProps> = ({
               />
             </div>
 
-            {/* Files & Channel List */}
-            {files.length === 0 ? (
-              <div
-                className={`text-center py-8 text-[13px] font-medium ${
-                  isDark ? 'text-[#A0A0A0]' : 'text-[#444444]'
+            {/* Uploaded Data Toggle */}
+            <div
+              className={`rounded-[4px] border overflow-hidden ${
+                isDark ? 'bg-[#202020] border-[#3A3A3A]' : 'bg-[#F3F3F3] border-[#CCCCCC]'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setIsUploadedDataOpen((prev) => !prev)}
+                className={`w-full flex items-center justify-between px-3 py-2 text-left ${
+                  isDark ? 'bg-[#242424]' : 'bg-[#EEEEEE]'
                 }`}
               >
-                No files loaded yet. Upload your TDMS or CSV, or load samples to begin.
-              </div>
-            ) : (
-              files.map((file) => {
-                const fileChannels = filteredChannels.filter((c) => c.fileId === file.id);
-                if (fileChannels.length === 0 && searchQuery.length > 0) return null;
+                <span className="flex items-center gap-2 text-[13px] font-semibold">
+                  <Database className={`w-3.5 h-3.5 ${isDark ? 'text-[#60CDFF]' : 'text-[#0067B8]'}`} />
+                  Uploaded Data
+                </span>
+                {isUploadedDataOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
 
-                return (
-                  <div
-                    key={file.id}
-                    id={`file-group-${file.id}`}
-                    className={`rounded-[4px] border overflow-hidden transition-all ${
-                      isDark ? 'bg-[#202020] border-[#3A3A3A]' : 'bg-[#F3F3F3] border-[#CCCCCC]'
-                    }`}
-                  >
-                    {/* File Header */}
+              {isUploadedDataOpen && (
+                <div className="p-2">
+                  {files.length === 0 ? (
                     <div
-                      className={`flex items-center justify-between px-3 py-2 border-b text-[13px] ${
-                        isDark ? 'bg-[#242424] border-[#3A3A3A]' : 'bg-[#EEEEEE] border-[#CCCCCC]'
+                      className={`text-center py-8 text-[13px] font-medium ${
+                        isDark ? 'text-[#A0A0A0]' : 'text-[#444444]'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {file.type === 'tdms' ? (
-                          <Database className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#60CDFF]' : 'text-[#0067B8]'}`} />
-                        ) : (
-                          <FileText className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        )}
-                        <span
-                          className={`font-semibold truncate max-w-[150px] ${
-                            isDark ? 'text-[#FFFFFF]' : 'text-[#111111]'
-                          }`}
-                          title={file.name}
-                        >
-                          {file.name}
-                        </span>
-                        <span
-                          className={`text-[11px] font-mono font-medium uppercase ${
-                            isDark ? 'text-[#A0A0A0]' : 'text-[#444444]'
-                          }`}
-                        >
-                          {file.type}
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => onDeleteFile(file.id)}
-                        title="Remove file"
-                        className={`p-1 rounded-[4px] hover:text-rose-500 ${
-                          isDark ? 'text-[#A0A0A0]' : 'text-[#555555]'
-                        }`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      No files loaded yet. Upload your TDMS or CSV, or load samples to begin.
                     </div>
+                  ) : (
+                    files.map((file) => {
+                      const fileChannels = filteredChannels.filter((c) => c.fileId === file.id);
+                      if (fileChannels.length === 0 && searchQuery.length > 0) return null;
 
-                    {/* Channel Items: Container #FFFFFF (Light) / #2C2C2C (Dark), Active status dots with 1px border */}
-                    <div className="p-1.5 space-y-1">
-                      {fileChannels.map((ch) => {
-                        const isChecked = selectedChannelsForSuperposition.includes(ch.id);
-                        return (
+                      const isFileExpanded = expandedFileIds[file.id] ?? true;
+
+                      return (
+                        <div
+                          key={file.id}
+                          id={`file-group-${file.id}`}
+                          className={`rounded-[4px] border overflow-hidden transition-all ${
+                            isDark ? 'bg-[#202020] border-[#3A3A3A]' : 'bg-[#F3F3F3] border-[#CCCCCC]'
+                          }`}
+                        >
+                          {/* File Header */}
                           <div
-                            key={ch.id}
-                            id={`channel-item-${ch.id}`}
-                            className={`group flex items-center justify-between p-2 rounded-[4px] border transition-colors ${
-                              isChecked
-                                ? isDark
-                                  ? 'bg-[#2C2C2C] border-[#60CDFF]'
-                                  : 'bg-[#FFFFFF] border-[#0067B8]'
-                                : isDark
-                                ? 'bg-[#2C2C2C] border-[#3A3A3A] hover:border-[#4A4A4A]'
-                                : 'bg-[#FFFFFF] border-[#E5E5E5] hover:border-[#CCCCCC]'
+                            className={`flex items-center justify-between px-3 py-2 border-b text-[13px] cursor-pointer ${
+                              isDark ? 'bg-[#242424] border-[#3A3A3A]' : 'bg-[#EEEEEE] border-[#CCCCCC]'
                             }`}
+                            onClick={() => toggleFileGroup(file.id)}
                           >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleSelectForSuperposition(ch.id)}
-                                title="Select for superposition"
-                                className={`rounded-[2px] cursor-pointer ${
-                                  isDark ? 'accent-[#60CDFF]' : 'accent-[#0067B8]'
-                                }`}
-                              />
-                              {/* Active Status Dots: 1px white border in dark mode, 1px dark border in light mode */}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {file.type === 'tdms' ? (
+                                <Database className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#60CDFF]' : 'text-[#0067B8]'}`} />
+                              ) : (
+                                <FileText className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              )}
                               <span
-                                className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs ${
-                                  isDark ? 'border border-white/90' : 'border border-black/80'
+                                className={`font-semibold truncate max-w-[150px] ${
+                                  isDark ? 'text-[#FFFFFF]' : 'text-[#111111]'
                                 }`}
-                                style={{ backgroundColor: ch.color }}
-                              ></span>
-                              <div className="min-w-0">
-                                <div
-                                  className={`text-[13px] font-semibold truncate max-w-[140px] ${
-                                    isDark ? 'text-[#FFFFFF]' : 'text-[#111111]'
-                                  }`}
-                                  title={ch.name}
-                                >
-                                  {ch.name}
-                                </div>
-                                <div
-                                  className={`text-[11px] font-medium ${
-                                    isDark ? 'text-[#A0A0A0]' : 'text-[#444444]'
-                                  }`}
-                                >
-                                  {ch.unit ? `[${ch.unit}] • ` : ''}
-                                  {ch.stats.sampleCount.toLocaleString()} pts
-                                </div>
-                              </div>
+                                title={file.name}
+                              >
+                                {file.name}
+                              </span>
+                              <span
+                                className={`text-[11px] font-mono font-medium uppercase ${
+                                  isDark ? 'text-[#A0A0A0]' : 'text-[#444444]'
+                                }`}
+                              >
+                                {file.type}
+                              </span>
                             </div>
 
-                            {/* Quick Plot Button */}
-                            <button
-                              onClick={() => onAddChannelToView(ch.id)}
-                              title="Plot in new/active graph"
-                              className={`p-1.5 rounded-[4px] transition-colors text-[11px] font-semibold flex items-center gap-0.5 border ${
-                                isDark
-                                  ? 'border-[#3A3A3A] bg-[#202020] hover:bg-[#3A3A3A] text-[#60CDFF]'
-                                  : 'border-[#CCCCCC] bg-[#F3F3F3] hover:bg-[#E5E5E5] text-[#0067B8]'
-                              }`}
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span className="hidden group-hover:inline text-[11px]">Plot</span>
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFileGroup(file.id);
+                                }}
+                                title={isFileExpanded ? 'Collapse file' : 'Expand file'}
+                                className={`p-1 rounded-[4px] ${
+                                  isDark ? 'text-[#A0A0A0] hover:text-[#FFFFFF]' : 'text-[#555555] hover:text-[#111111]'
+                                }`}
+                              >
+                                {isFileExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteFile(file.id);
+                                }}
+                                title="Remove file"
+                                className={`p-1 rounded-[4px] hover:text-rose-500 ${
+                                  isDark ? 'text-[#A0A0A0]' : 'text-[#555555]'
+                                }`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+
+                          {isFileExpanded && (
+                            <div className="p-1.5 space-y-1">
+                              {fileChannels.map((ch) => {
+                                const isChecked = selectedChannelsForSuperposition.includes(ch.id);
+                                return (
+                                  <div
+                                    key={ch.id}
+                                    id={`channel-item-${ch.id}`}
+                                    className={`group flex items-center justify-between p-2 rounded-[4px] border transition-colors ${
+                                      isChecked
+                                        ? isDark
+                                          ? 'bg-[#2C2C2C] border-[#60CDFF]'
+                                          : 'bg-[#FFFFFF] border-[#0067B8]'
+                                        : isDark
+                                        ? 'bg-[#2C2C2C] border-[#3A3A3A] hover:border-[#4A4A4A]'
+                                        : 'bg-[#FFFFFF] border-[#E5E5E5] hover:border-[#CCCCCC]'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleSelectForSuperposition(ch.id)}
+                                        title="Select for superposition"
+                                        className={`rounded-[2px] cursor-pointer ${
+                                          isDark ? 'accent-[#60CDFF]' : 'accent-[#0067B8]'
+                                        }`}
+                                      />
+                                      <span
+                                        className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs ${
+                                          isDark ? 'border border-white/90' : 'border border-black/80'
+                                        }`}
+                                        style={{ backgroundColor: ch.color }}
+                                      ></span>
+                                      <div className="min-w-0">
+                                        <div
+                                          className={`text-[13px] font-semibold truncate max-w-[140px] ${
+                                            isDark ? 'text-[#FFFFFF]' : 'text-[#111111]'
+                                          }`}
+                                          title={ch.name}
+                                        >
+                                          {ch.name}
+                                        </div>
+                                        <div
+                                          className={`text-[11px] font-medium ${
+                                            isDark ? 'text-[#A0A0A0]' : 'text-[#444444]'
+                                          }`}
+                                        >
+                                          {ch.unit ? `[${ch.unit}] • ` : ''}
+                                          {ch.stats.sampleCount.toLocaleString()} pts
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      onClick={() => onAddChannelToView(ch.id)}
+                                      title="Plot in new/active graph"
+                                      className={`p-1.5 rounded-[4px] transition-colors text-[11px] font-semibold flex items-center gap-0.5 border ${
+                                        isDark
+                                          ? 'border-[#3A3A3A] bg-[#202020] hover:bg-[#3A3A3A] text-[#60CDFF]'
+                                          : 'border-[#CCCCCC] bg-[#F3F3F3] hover:bg-[#E5E5E5] text-[#0067B8]'
+                                      }`}
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span className="hidden group-hover:inline text-[11px]">Plot</span>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

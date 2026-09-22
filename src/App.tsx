@@ -464,6 +464,7 @@ export default function App() {
                     allChannels={channels}
                     isDark={isDark}
                     isMaximized={maximizedViewId === view.id}
+                    forceStackedHeader={visibleViews.length > 1}
                     onToggleMaximize={() =>
                       setMaximizedViewId(maximizedViewId === view.id ? null : view.id)
                     }

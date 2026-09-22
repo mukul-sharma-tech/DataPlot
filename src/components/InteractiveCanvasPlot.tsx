@@ -30,6 +30,7 @@ interface InteractiveCanvasPlotProps {
   allChannels: DataChannel[];
   isDark: boolean;
   isMaximized: boolean;
+  forceStackedHeader?: boolean;
   onToggleMaximize: () => void;
   onUpdateView: (updated: Partial<GraphViewConfig>) => void;
   onRemoveView?: () => void;
@@ -40,6 +41,7 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
   allChannels,
   isDark,
   isMaximized,
+  forceStackedHeader = false,
   onToggleMaximize,
   onUpdateView,
 }) => {
@@ -873,7 +875,7 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
       ? Math.abs(view.cursorB - view.cursorA)
       : null;
   const deltaFreq = deltaX && deltaX > 0 ? 1 / deltaX : null;
-  const isCompactHeader = containerWidth < 640;
+  const isCompactHeader = true;
 
   return (
     <div
@@ -888,11 +890,11 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
       {/* Tile Header & Toolbar */}
       <div
         id={`graph-header-${view.id}`}
-        className={`flex ${isCompactHeader ? 'flex-col items-stretch' : 'flex-wrap items-center justify-between'} px-2.5 py-1.5 border-b select-none text-[12px] sm:text-[13px] min-h-[36px] overflow-hidden gap-1.5 ${
+        className={`flex flex-col items-stretch px-2.5 py-1.5 border-b select-none text-[12px] sm:text-[13px] min-h-[36px] overflow-hidden gap-1.5 ${
           isDark ? 'border-[#3A3A3A] bg-[#242424]' : 'border-[#CCCCCC] bg-[#EEEEEE]'
         }`}
       >
-        <div className={`flex items-center gap-1.5 min-w-0 ${isCompactHeader ? 'w-full' : 'flex-1 overflow-hidden'}`}>
+        <div className="flex items-center gap-1.5 min-w-0 w-full">
           <span
             className={`w-2.5 h-2.5 rounded-full shrink-0 ${
               isDark ? 'bg-[#60CDFF] border border-white/90' : 'bg-[#0067B8] border border-black/80'
@@ -932,11 +934,7 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
         </div>
 
         {/* Action Controls - Always grouped in a second row for multi-graph layouts */}
-        <div
-          className={`flex flex-wrap items-center gap-0.5 sm:gap-1 ${
-            isCompactHeader ? 'w-full justify-between pt-1 border-t border-inherit' : 'justify-end shrink-0 ml-auto'
-          }`}
-        >
+        <div className="flex flex-wrap items-center gap-1 w-full justify-start pt-1 border-t border-inherit">
           {/* Superposition Channel Selector */}
           <div className="relative">
             <button
@@ -1271,7 +1269,7 @@ export const InteractiveCanvasPlot: React.FC<InteractiveCanvasPlotProps> = ({
               isDark ? 'text-[#A0A0A0]' : 'text-[#5F5F5F]'
             }`}
           >
-            Drag: Zoom | Right-Click: Step Back | Wheel: Scroll Zoom | Middle: Pan
+            {/* Drag: Zoom | Right-Click: Step Back | Wheel: Scroll Zoom | Middle: Pan */}
           </div>
         )}
       </div>

@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Windows 11 Fluent Light Theme Configuration */
+:root[data-theme="light"],
+:root:not([data-theme="dark"]) {
+  --wp-bg-app: #EEEEEE;
+  --wp-bg-canvas: #F3F3F3;
+  --wp-bg-surface: #FFFFFF;
+  --wp-border: #E5E5E5;
+  --wp-text-primary: #111111;
+  --wp-text-secondary: #333333;
+  --wp-accent: #0067B8;
+  --wp-grid: #E5E5E5;
+  --wp-font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Windows 11 Fluent Dark Theme Configuration */
+:root[data-theme="dark"] {
+  --wp-bg-app: #1C1C1C;
+  --wp-bg-canvas: #202020;
+  --wp-bg-surface: #2C2C2C;
+  --wp-border: #3A3A3A;
+  --wp-text-primary: #FFFFFF;
+  --wp-text-secondary: #A0A0A0;
+  --wp-accent: #60CDFF;
+  --wp-grid: #2F2F2F;
+  --wp-font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Global Application Base Override */
+body {
+  font-family: var(--wp-font);
+  background-color: var(--wp-bg-canvas);
+  color: var(--wp-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbars matching Windows 11 Fluent aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #C4C4C4;
+  border-radius: 3px;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #A0A0A0;
+}
+
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3A3A3A;
+  border-radius: 3px;
+}
+
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #4E4E4E;
+}
